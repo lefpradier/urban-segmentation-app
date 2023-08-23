@@ -104,6 +104,7 @@ class DataGenerator(keras.utils.Sequence):
 
             #!nombre de catégories observées sur le masque
             labels = np.unique(img)
+            print(labels)
             #!changer d'image si trop peu de catégories
             if len(labels) < 3:
                 idx = np.random.randint(0, 50000, batch_size - drawn)
