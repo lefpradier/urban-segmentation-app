@@ -32,7 +32,6 @@ for i in range(len(image_list)):
 batch_size = 16
 samples = 50000
 steps = samples // batch_size
-img_height, img_width = 256, 256
 classes = 8
 filters_n = 64
 
@@ -49,17 +48,39 @@ class DataGenerator(keras.utils.Sequence):
         n_channels=1,
         n_classes=10,
         shuffle=True,
-        aug=None,
+        aug_list=None,
+        img_height=256,
+        img_width=256,
     ):
         "Initialization"
         self.dim = dim
-        self.batch_size = batch_size
+        #!batch size relative transfo ou pas
+        if aug_list is not None:
+            self.batch_size = batch_size / 2
+        else:
+            self.batch_size = batch_size
         self.labels = labels
         self.list_IDs = list_IDs
         self.n_channels = n_channels
         self.n_classes = n_classes
         self.shuffle = shuffle
-        self.aug = aug
+        self.img_height = img_height
+        self.img_width = img_width
+
+        #!FILTER DICT
+        filter_dict = {
+            "hflip": A.HorizontalFlip(p=1),
+            "rgb": A.RGBShift(p=1),
+            "rotate": A.ShiftScaleRotate(p=1),
+            "blur": A.Blur(blur_limit=11, p=1),
+            "bright": A.RandomBrightness(p=1),
+            "contrast": A.CLAHE(p=1),
+            "mblur": A.MotionBlur(blur_limit=17, p=1),
+        }
+        if aug_list is not None:
+            self.aug = A.Compose([filter_dict[x] for x in aug_list])
+        else:
+            self.aug = None
         self.on_epoch_end()
 
     #!LEN
@@ -70,74 +91,54 @@ class DataGenerator(keras.utils.Sequence):
     #!GET ITEM
     # TODO: NEW
     def __getitem__(self, idx):
-        idx = np.random.randint(0, 50000, batch_size)  # TODO : wtf 50000
+        idx = self.list_IDs[idx * self.batch_size : (idx + 1) * self.batch_size]
         batch_x, batch_y = [], []
         drawn = 0
         for i in idx:
             #!chargement de l'image
             _image = cv2.imread(f"{image_dir}/{image_list[i]}")
-            img = cv2.imread(f"{mask_dir}/{mask_list[i]}", cv2.IMREAD_COLOR)
-            if self.aug is not None:
-                augmented = self.aug(image=_image, mask=img)
-                _image, img = augmented["image"], augmented["mask"]
-            # _image = (
-            #     image.img_to_array(
-            #         image.load_img(
-            #             f"{image_dir}/{image_list[i]}",
-            #             target_size=(img_height, img_width),
-            #         )
-            #     )
-            #     / 255.0  # TODO : redimen entre 0 et 1 et pas entre 0 et 255
-            # )
-            # ?TRANSFORMATION IMAGE
-
-            #!RENDRE LISIBLE LE MASQUE
             #!chargement du masque
-            # img = image.img_to_array(
-            #     image.load_img(
-            #         f"{mask_dir}/{mask_list[i]}",
-            #         grayscale=True,
-            #         target_size=(img_height, img_width),
-            #     )
-            # )
-            # ?TRANSFORMATION MASK
-
-            #!nombre de catégories observées sur le masque
-            labels = np.unique(img)
-            print(labels)
-            #!changer d'image si trop peu de catégories
-            if len(labels) < 3:
-                idx = np.random.randint(0, 50000, batch_size - drawn)
-                continue
-            #!transforme le masque pour chaque sous px de l'image en 8 cat avec  0
-            img = np.squeeze(img)
-            mask = np.zeros((img.shape[0], img.shape[1], 8))
-            #!comparaison aux catégories théo def plus hauts cats
-            # ajout 1 si présent
-            #!pour les elements de l'image qui m'intresse
-            for i in range(-1, 34):
-                if i in cats["void"]:
-                    mask[:, :, 0] = np.logical_or(mask[:, :, 0], (img == i))
-                elif i in cats["flat"]:
-                    mask[:, :, 1] = np.logical_or(mask[:, :, 1], (img == i))
-                elif i in cats["construction"]:
-                    mask[:, :, 2] = np.logical_or(mask[:, :, 2], (img == i))
-                elif i in cats["object"]:
-                    mask[:, :, 3] = np.logical_or(mask[:, :, 3], (img == i))
-                elif i in cats["nature"]:
-                    mask[:, :, 4] = np.logical_or(mask[:, :, 4], (img == i))
-                elif i in cats["sky"]:
-                    mask[:, :, 5] = np.logical_or(mask[:, :, 5], (img == i))
-                elif i in cats["human"]:
-                    mask[:, :, 6] = np.logical_or(mask[:, :, 6], (img == i))
-                elif i in cats["vehicle"]:
-                    mask[:, :, 7] = np.logical_or(mask[:, :, 7], (img == i))
-                    #!reshape en 2D : input model?
-            mask = np.resize(mask, (img_height * img_width, 8))
-            #!append les images segmentées (mask) et les images brutes _image en couples pour input modèle
-            batch_y.append(mask)
-            batch_x.append(_image)
-            drawn += 1
+            img = cv2.imread(f"{mask_dir}/{mask_list[i]}", cv2.IMREAD_COLOR)
+            #!resize img
+            img = cv2.resize(img, (self.img_height, self.img_width))
+            _image = cv2.resize(_image, (self.img_height, self.img_width)) / 255.0
+            #!pour appliquer la suite sur img et aug
+            for j in range(2):
+                if self.aug is not None and j > 0:
+                    augmented = self.aug(image=_image, mask=img)
+                    _image, img = augmented["image"], augmented["mask"]
+                elif j > 0:
+                    break
+                #!RENDRE LISIBLE LE MASQUE
+                #!transforme le masque pour chaque sous px de l'image en 8 cat avec  0
+                img = np.squeeze(img)
+                mask = np.zeros((img.shape[0], img.shape[1], 8))
+                #!comparaison aux catégories théo def plus hauts cats
+                # ajout 1 si présent
+                #!pour les elements de l'image qui m'intresse
+                for k in range(-1, 34):
+                    if k in cats["void"]:
+                        mask[:, :, 0] = np.logical_or(mask[:, :, 0], (img == k))
+                    elif k in cats["flat"]:
+                        mask[:, :, 1] = np.logical_or(mask[:, :, 1], (img == k))
+                    elif k in cats["construction"]:
+                        mask[:, :, 2] = np.logical_or(mask[:, :, 2], (img == k))
+                    elif k in cats["object"]:
+                        mask[:, :, 3] = np.logical_or(mask[:, :, 3], (img == k))
+                    elif k in cats["nature"]:
+                        mask[:, :, 4] = np.logical_or(mask[:, :, 4], (img == k))
+                    elif k in cats["sky"]:
+                        mask[:, :, 5] = np.logical_or(mask[:, :, 5], (img == k))
+                    elif k in cats["human"]:
+                        mask[:, :, 6] = np.logical_or(mask[:, :, 6], (img == k))
+                    elif k in cats["vehicle"]:
+                        mask[:, :, 7] = np.logical_or(mask[:, :, 7], (img == k))
+                        #!reshape en 2D : input model?
+                mask = np.resize(mask, (self.img_height * self.img_width, 8))
+                #!append les images segmentées (mask) et les images brutes _image en couples pour input modèle
+                batch_y.append(mask)
+                batch_x.append(_image)
+                drawn += 1
         return np.array(batch_x), np.array(batch_y)
 
     #!SHUFFLE
@@ -146,52 +147,3 @@ class DataGenerator(keras.utils.Sequence):
         self.indexes = np.arange(len(self.list_IDs))
         if self.shuffle == True:
             np.random.shuffle(self.indexes)
-
-
-#!transformations
-light = A.Compose(
-    [
-        A.HorizontalFlip(p=1),
-        A.RandomSizedCrop((800 - 100, 800 + 100), 600, 600),
-        A.GaussNoise(var_limit=(100, 150), p=1),
-    ],
-    bbox_params=bbox_params,
-    p=1,
-)
-
-medium = A.Compose(
-    [
-        A.HorizontalFlip(p=1),
-        A.RandomSizedCrop((800 - 100, 800 + 100), 600, 600),
-        A.MotionBlur(blur_limit=17, p=1),
-    ],
-    bbox_params=bbox_params,
-    p=1,
-)
-
-strong = A.Compose(
-    [
-        A.HorizontalFlip(p=1),
-        A.RandomSizedCrop((800 - 100, 800 + 100), 600, 600),
-        A.RGBShift(p=1),
-        A.Blur(blur_limit=11, p=1),
-        A.RandomBrightness(p=1),
-        A.CLAHE(p=1),
-    ],
-    bbox_params=bbox_params,
-    p=1,
-)
-
-#!application des transfo
-random.seed(13)
-r = augment_and_show(
-    light,
-    image,
-    labels,
-    bboxes,
-    instance_labels,
-    titles,
-    thickness=2,
-    font_scale_orig=2,
-    font_scale_aug=1,
-)
