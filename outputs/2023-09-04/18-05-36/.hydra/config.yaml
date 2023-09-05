@@ -1,17 +1,14 @@
-user_config:
-
+user_config: null
 data:
   trainX: data/raw/P8_Cityscapes_leftImg8bit_trainvaltest/leftImg8bit/train
   trainY: data/raw/P8_Cityscapes_gtFine_trainvaltest/gtFine/train
   validX: data/raw/P8_Cityscapes_leftImg8bit_trainvaltest/leftImg8bit/val
   validY: data/raw/P8_Cityscapes_gtFine_trainvaltest/gtFine/val
-  input_height: 384
-  input_width: 384
-
+  input_height: 256
+  input_width: 512
 generator:
   workers: 22
   batch_size: 16
-  
 model:
   loss_function: DiceLoss
   optimizer: adam
@@ -20,8 +17,6 @@ model:
   name: SIMPLE
   backbone: vanilla
   model_type: unet
-
-
 mlflow:
   experiment_name: simple_model_trial
   run_name: simple_unetmini

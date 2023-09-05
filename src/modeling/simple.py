@@ -12,8 +12,14 @@ logger = logging.getLogger(__name__)
 import pandas as pd
 import time
 import os
+import sys
+from pathlib import Path
+
+sys.path.append("src/modeling/")
+
+os.environ["SM_FRAMEWORK"] = "tf.keras"
 import segmentation_models as sm
-from keras_unet.models import vanilla_unet
+from keras_unet.models import custom_unet, vanilla_unet
 import glob
 from data_generator import DataGenerator
 
@@ -31,22 +37,18 @@ def makerun(cfg: DictConfig):
 
     # DATASETS
     training_generator = DataGenerator(
-        img_list=[f for f in glob.iglob(cfg.data.trainX + "**/*.png", recursive=True)],
-        mask_list=[
-            f for f in glob.iglob(cfg.data.trainY + "**/*labelIds.png", recursive=True)
-        ],
-        batch_size=cfg.model.batch_size,
+        img_list=[str(f) for f in Path(cfg.data.trainX).rglob("*.png")],
+        mask_list=[str(f) for f in Path(cfg.data.trainY).rglob("*labelIds.png")],
+        batch_size=cfg.generator.batch_size,
         shuffle=True,
         aug_list=None,
         img_height=cfg.data.input_height,
         img_width=cfg.data.input_width,
     )
     validation_generator = DataGenerator(
-        img_list=[f for f in glob.iglob(cfg.data.validX + "**/*.png", recursive=True)],
-        mask_list=[
-            f for f in glob.iglob(cfg.data.validY + "**/*labelIds.png", recursive=True)
-        ],
-        batch_size=cfg.model.batch_size,
+        img_list=[str(f) for f in Path(cfg.data.validX).rglob("*.png")],
+        mask_list=[str(f) for f in Path(cfg.data.validY).rglob("*labelIds.png")],
+        batch_size=cfg.generator.batch_size,
         shuffle=True,
         aug_list=None,
         img_height=cfg.data.input_height,
@@ -54,7 +56,11 @@ def makerun(cfg: DictConfig):
     )
 
     #! get model architecture
-    model = vanilla_unet(input_shape=(cfg.data.input_height, cfg.data.input_width, 3))
+    model = custom_unet(
+        input_shape=(cfg.data.input_width, cfg.data.input_height, 3),
+        num_classes=8,
+        output_activation="softmax",
+    )
 
     #! custom loss fct
     loss = getattr(sm.losses, cfg.model.loss_function)
@@ -64,6 +70,7 @@ def makerun(cfg: DictConfig):
         loss=loss(),
         optimizer=cfg.model.optimizer,
         metrics=[sm.metrics.IOUScore(), sm.metrics.FScore()],
+        run_eagerly=True,
     )
     print(model.summary())
 

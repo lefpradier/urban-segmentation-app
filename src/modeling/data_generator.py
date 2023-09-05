@@ -1,6 +1,5 @@
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.keras.preprocessing import image
 import cv2
 import albumentations as A
 
@@ -59,12 +58,18 @@ class DataGenerator(tf.keras.utils.Sequence):
     #!LEN
     def __len__(self):
         "Denotes the number of batches per epoch"
-        return int(np.floor(len(self.img_list) / self.batch_size))
+        return int(np.ceil(len(self.img_list) / float(self.batch_size)))
 
     #!GET ITEM
     # TODO: NEW
     def __getitem__(self, idx):
-        idx = self.img_list[idx * self.batch_size : (idx + 1) * self.batch_size]
+        idx = [
+            i
+            for i in range(
+                idx * self.batch_size,
+                min((idx + 1) * self.batch_size, len(self.img_list)),
+            )
+        ]
         batch_x, batch_y = [], []
         drawn = 0
         for i in idx:
@@ -74,6 +79,7 @@ class DataGenerator(tf.keras.utils.Sequence):
             img = cv2.imread(self.mask_list[i], cv2.IMREAD_COLOR)
             #!resize img
             img = cv2.resize(img, (self.img_height, self.img_width))
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             _image = cv2.resize(_image, (self.img_height, self.img_width)) / 255.0
             #!pour appliquer la suite sur img et aug
             for j in range(2):
@@ -107,7 +113,7 @@ class DataGenerator(tf.keras.utils.Sequence):
                     elif k in self.cats["vehicle"]:
                         mask[:, :, 7] = np.logical_or(mask[:, :, 7], (img == k))
                         #!reshape en 2D : input model?
-                mask = np.resize(mask, (self.img_height * self.img_width, 8))
+                # mask = np.resize(mask, (self.img_height * self.img_width, 8))
                 #!append les images segmentées (mask) et les images brutes _image en couples pour input modèle
                 batch_y.append(mask)
                 batch_x.append(_image)
@@ -117,6 +123,6 @@ class DataGenerator(tf.keras.utils.Sequence):
     #!SHUFFLE
     def on_epoch_end(self):
         "Updates indexes after each epoch"
-        self.indexes = np.arange(len(self.list_IDs))
+        self.indexes = np.arange(len(self.img_list))
         if self.shuffle == True:
             np.random.shuffle(self.indexes)
