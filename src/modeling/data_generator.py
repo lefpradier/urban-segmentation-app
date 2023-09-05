@@ -20,7 +20,7 @@ class DataGenerator(tf.keras.utils.Sequence):
         "Initialization"
         #!batch size relative transfo ou pas
         if aug_list is not None:
-            self.batch_size = batch_size / 2
+            self.batch_size = int(batch_size / 2)
         else:
             self.batch_size = batch_size
         self.img_list = img_list
@@ -80,7 +80,7 @@ class DataGenerator(tf.keras.utils.Sequence):
             #!resize img
             img = cv2.resize(img, (self.img_height, self.img_width))
             img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            _image = cv2.resize(_image, (self.img_height, self.img_width)) / 255.0
+            _image = cv2.resize(_image, (self.img_height, self.img_width))
             #!pour appliquer la suite sur img et aug
             for j in range(2):
                 if self.aug is not None and j > 0:
@@ -116,7 +116,7 @@ class DataGenerator(tf.keras.utils.Sequence):
                 # mask = np.resize(mask, (self.img_height * self.img_width, 8))
                 #!append les images segmentées (mask) et les images brutes _image en couples pour input modèle
                 batch_y.append(mask)
-                batch_x.append(_image)
+                batch_x.append(_image / 255.0)
                 drawn += 1
         return np.array(batch_x), np.array(batch_y)
 

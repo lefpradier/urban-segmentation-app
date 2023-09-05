@@ -26,7 +26,7 @@ from data_generator import DataGenerator
 os.environ["XLA_FLAGS"] = "--xla_gpu_cuda_data_dir=/usr/lib/cuda"
 
 
-@hydra.main(version_base=None, config_path="../../config", config_name="simple")
+@hydra.main(version_base=None, config_path="../../config", config_name="simple_aug")
 def makerun(cfg: DictConfig):
     # pass user_config as sys.arg to merge config files
     if cfg.user_config is not None:
@@ -41,7 +41,7 @@ def makerun(cfg: DictConfig):
         mask_list=[str(f) for f in Path(cfg.data.trainY).rglob("*labelIds.png")],
         batch_size=cfg.generator.batch_size,
         shuffle=True,
-        aug_list=None,
+        aug_list=cfg.generator.auglist.split("_"),
         img_height=cfg.data.input_height,
         img_width=cfg.data.input_width,
     )
