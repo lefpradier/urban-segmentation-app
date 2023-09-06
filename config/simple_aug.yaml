@@ -5,8 +5,8 @@ data:
   trainY: data/raw/P8_Cityscapes_gtFine_trainvaltest/gtFine/train
   validX: data/raw/P8_Cityscapes_leftImg8bit_trainvaltest/leftImg8bit/val
   validY: data/raw/P8_Cityscapes_gtFine_trainvaltest/gtFine/val
-  input_height: 384
-  input_width: 384
+  input_height: 256
+  input_width: 512
 
 generator:
   workers: 22
@@ -16,7 +16,7 @@ generator:
 model:
   loss_function: DiceLoss
   optimizer: adam
-  no_epochs: 10
+  no_epochs: 15
   verbosity: 2
   name: SIMPLE
   backbone: vanilla
