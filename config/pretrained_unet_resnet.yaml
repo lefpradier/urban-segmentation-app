@@ -11,7 +11,7 @@ data:
 generator:
   workers: 12
   batch_size: 24
-  auglist:
+  auglist: hflip_rgb_bright_mblur
   
 model:
   loss_function: DiceLoss

@@ -5,13 +5,13 @@ data:
   trainY: data/raw/P8_Cityscapes_gtFine_trainvaltest/gtFine/train
   validX: data/raw/P8_Cityscapes_leftImg8bit_trainvaltest/leftImg8bit/val
   validY: data/raw/P8_Cityscapes_gtFine_trainvaltest/gtFine/val
-  input_height: 256
-  input_width: 512
+  input_height: 128
+  input_width: 256
 
 generator:
   workers: 12
-  batch_size: 24
-  auglist:
+  batch_size: 16
+  auglist: hflip_rgb_bright_mblur
   
 model:
   loss_function: DiceLoss
@@ -19,10 +19,10 @@ model:
   no_epochs: 15
   verbosity: 2
   name: P_UNET
-  backbone: mobilenetv2
+  backbone: resnet101
   model_type: unet
 
 
 mlflow:
-  experiment_name: pretrained_unet
-  run_name: pretrained_unet_trial
+  experiment_name: pretrained_unet_resnet
+  run_name: pretrained_unet_resnet_trial

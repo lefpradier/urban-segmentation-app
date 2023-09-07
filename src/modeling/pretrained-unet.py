@@ -26,7 +26,9 @@ from data_generator import DataGenerator
 os.environ["XLA_FLAGS"] = "--xla_gpu_cuda_data_dir=/usr/lib/cuda"
 
 
-@hydra.main(version_base=None, config_path="../../config", config_name="pretrained_unet")
+@hydra.main(
+    version_base=None, config_path="../../config", config_name="pretrained_unet"
+)
 def makerun(cfg: DictConfig):
     # pass user_config as sys.arg to merge config files
     if cfg.user_config is not None:
@@ -36,12 +38,16 @@ def makerun(cfg: DictConfig):
     mlflow.set_experiment(cfg.mlflow.experiment_name)
 
     # DATASETS
+    if cfg.generator.auglist is not None:
+        aug_list = cfg.generator.auglist.split("_")
+    else:
+        aug_list = None
     training_generator = DataGenerator(
         img_list=[str(f) for f in Path(cfg.data.trainX).rglob("*.png")],
         mask_list=[str(f) for f in Path(cfg.data.trainY).rglob("*labelIds.png")],
         batch_size=cfg.generator.batch_size,
         shuffle=True,
-        aug_list=cfg.generator.auglist.split("_"),
+        aug_list=aug_list,
         img_height=cfg.data.input_height,
         img_width=cfg.data.input_width,
     )
@@ -56,7 +62,7 @@ def makerun(cfg: DictConfig):
 
     #! get model architecture
     model = sm.Unet(
-        backbone=cfg.model.backbone
+        cfg.model.backbone,
         input_shape=(cfg.data.input_width, cfg.data.input_height, 3),
         classes=8,
         activation="softmax",
@@ -66,6 +72,22 @@ def makerun(cfg: DictConfig):
     loss = getattr(sm.losses, cfg.model.loss_function)
 
     #! model architecture : compile
+    # ?class weight based on imbalance, cf test_init
+    #!Define class weights betwee 0-1
+    w = [
+        1 / 0.106,
+        1 / 0.389,
+        1 / 0.218,
+        1 / 0.018,
+        1 / 0.145,
+        1 / 0.036,
+        1 / 0.012,
+        1 / 0.075,
+    ]
+    class_weights = [x / np.sum(w) for x in w]
+    #!regularization of all layers
+    # model = set_regularization(model, kernel_regularizer=tf.keras.regularizers.l2(0.01))
+    #!COMPILE
     model.compile(
         loss=loss(),
         optimizer=cfg.model.optimizer,
@@ -74,6 +96,7 @@ def makerun(cfg: DictConfig):
     )
     print(model.summary())
 
+    #!START RUN
     with mlflow.start_run(run_name=cfg.mlflow.run_name) as run:
         params = {
             "n_epoch": cfg.model.no_epochs,
@@ -88,6 +111,10 @@ def makerun(cfg: DictConfig):
         mlflow.log_params(params)
         start = time.time()
 
+        #!Early stopping
+        early_stopping = tf.keras.callbacks.EarlyStopping(
+            monitor="val_loss", patience=3
+        )
         #! FIT MODEL
         history = model.fit_generator(
             generator=training_generator,
@@ -96,6 +123,7 @@ def makerun(cfg: DictConfig):
             workers=cfg.generator.workers,
             epochs=cfg.model.no_epochs,
             verbose=cfg.model.verbosity,
+            callbacks=[early_stopping],
         )
         time_spent = time.time() - start
         print(history)
@@ -136,8 +164,27 @@ def makerun(cfg: DictConfig):
 
         mlflow.log_metrics(scores)
         mlflow.tensorflow.log_model(
-            model, registered_model_name=cfg.model.name, artifact_path="SIMPLE"
+            model, registered_model_name=cfg.model.name, artifact_path="UNET"
         )
+
+
+#!regularisation function of the CNN
+def set_regularization(
+    model, kernel_regularizer=None, bias_regularizer=None, activity_regularizer=None
+):
+    for layer in model.layers:
+        # set kernel_regularizer
+        if kernel_regularizer is not None and hasattr(layer, "kernel_regularizer"):
+            layer.kernel_regularizer = kernel_regularizer
+        # set bias_regularizer
+        if bias_regularizer is not None and hasattr(layer, "bias_regularizer"):
+            layer.bias_regularizer = bias_regularizer
+        # set activity_regularizer
+        if activity_regularizer is not None and hasattr(layer, "activity_regularizer"):
+            layer.activity_regularizer = activity_regularizer
+    out = tf.keras.models.model_from_json(model.to_json())
+    out.set_weights(model.get_weights())
+    return out
 
 
 # execute fct
