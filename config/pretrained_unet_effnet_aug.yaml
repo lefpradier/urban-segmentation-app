@@ -11,18 +11,18 @@ data:
 generator:
   workers: 12
   batch_size: 16
-  auglist: hflip_rgb_bright_mblur
+  auglist: hflip_rotateb_gnoise_rdcrop
   
 model:
-  loss_function: fTversky
+  loss_function: DiceLoss
   optimizer: adam
   no_epochs: 15
   verbosity: 2
   name: P_UNET
-  backbone: resnet101
+  backbone: efficientnetb4
   model_type: unet
 
 
 mlflow:
-  experiment_name: pretrained_unet_resnet
-  run_name: pretrained_unet_resnet_classweight
+  experiment_name: pretrained_unet_effnet
+  run_name: pretrained_unet_effnet_Dice_adam_newfilter

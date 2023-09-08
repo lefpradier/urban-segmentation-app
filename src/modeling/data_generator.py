@@ -45,6 +45,9 @@ class DataGenerator(tf.keras.utils.Sequence):
             "bright": A.RandomBrightness(p=0.5),
             "contrast": A.CLAHE(p=0.5),
             "mblur": A.MotionBlur(blur_limit=17, p=0.5),
+            "rotateb": A.Rotate(p=0.5),
+            "rdcrop": A.RandomCrop(height=128, width=256, p=0.5),
+            "gnoise": A.GaussNoise(p=0.5),
         }
         if aug_list is not None:
             self.aug = A.Compose([filter_dict[x] for x in aug_list])
@@ -74,14 +77,14 @@ class DataGenerator(tf.keras.utils.Sequence):
             _image = cv2.imread(self.img_list[self.indexes[i]])
             #!chargement du masque
             img = cv2.imread(self.mask_list[self.indexes[i]], cv2.IMREAD_COLOR)
-            #!resize img
-            img = cv2.resize(img, (self.img_height, self.img_width))
             img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            _image = cv2.resize(_image, (self.img_height, self.img_width))
             #!pour appliquer la suite sur img et aug
             if self.aug is not None:
                 augmented = self.aug(image=_image, mask=img)
                 _image, img = augmented["image"], augmented["mask"]
+            #!resize img
+            img = cv2.resize(img, (self.img_height, self.img_width))
+            _image = cv2.resize(_image, (self.img_height, self.img_width))
             #!RENDRE LISIBLE LE MASQUE
             #!transforme le masque pour chaque sous px de l'image en 8 cat avec  0
             img = np.squeeze(img)
