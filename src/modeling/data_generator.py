@@ -53,7 +53,9 @@ class DataGenerator(tf.keras.utils.Sequence):
             "contrast": A.CLAHE(p=0.5),
             "mblur": A.MotionBlur(blur_limit=17, p=0.5),
             "rotateb": A.Rotate(limit=45, p=0.5),
-            "rdcrop": A.RandomCrop(height=img_height / 2, width=img_width / 2, p=0.5),
+            "rdcrop": A.RandomCrop(
+                height=int(img_height / 2), width=int(img_width / 2), p=0.5
+            ),
             "gnoise": A.GaussNoise(p=0.5),
         }
         if aug_list is not None:
