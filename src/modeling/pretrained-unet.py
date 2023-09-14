@@ -42,18 +42,27 @@ def makerun(cfg: DictConfig):
         aug_list = cfg.generator.auglist.split("_")
     else:
         aug_list = None
+    x_train = [str(f) for f in Path(cfg.data.trainX).rglob("*.png")]
+    y_train = [str(f) for f in Path(cfg.data.trainY).rglob("*labelIds.png")]
+    x_valid = [str(f) for f in Path(cfg.data.validX).rglob("*.png")]
+    y_valid = [str(f) for f in Path(cfg.data.validY).rglob("*labelIds.png")]
+    x_train.sort()
+    y_train.sort()
+    x_valid.sort()
+    y_valid.sort()
     training_generator = DataGenerator(
-        img_list=[str(f) for f in Path(cfg.data.trainX).rglob("*.png")],
-        mask_list=[str(f) for f in Path(cfg.data.trainY).rglob("*labelIds.png")],
+        img_list=x_train,
+        mask_list=y_train,
         batch_size=cfg.generator.batch_size,
         shuffle=True,
         aug_list=aug_list,
         img_height=cfg.data.input_height,
         img_width=cfg.data.input_width,
+        mosaic=True,
     )
     validation_generator = DataGenerator(
-        img_list=[str(f) for f in Path(cfg.data.validX).rglob("*.png")],
-        mask_list=[str(f) for f in Path(cfg.data.validY).rglob("*labelIds.png")],
+        img_list=x_valid,
+        mask_list=y_valid,
         batch_size=cfg.generator.batch_size,
         shuffle=True,
         img_height=cfg.data.input_height,
@@ -63,7 +72,7 @@ def makerun(cfg: DictConfig):
     #! get model architecture
     model = sm.Unet(
         cfg.model.backbone,
-        input_shape=(cfg.data.input_width, cfg.data.input_height, 3),
+        input_shape=(cfg.data.input_height, cfg.data.input_width, 3),
         classes=8,
         activation="softmax",
         encoder_freeze=True,
