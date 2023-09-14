@@ -3,5 +3,6 @@ user_config:
 generator:
   auglist: hflip_rotateb_gnoise_rdcrop
 
+
 mlflow:
-  run_name: unet_mobilenet_aug
+  run_name: unetmini_aug

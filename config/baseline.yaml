@@ -18,11 +18,11 @@ model:
   optimizer: adam
   no_epochs: 15
   verbosity: 2
-  name: UNET
-  backbone: mobilenetv2
-  model_type: unet
+  name: UNET_VANILLA
+  backbone: vanilla
+  model_type: unetmini
 
 
 mlflow:
-  experiment_name: pretrained_unet
-  run_name: unet_mobilenet
+  experiment_name: baseline_model
+  run_name: unetmini

@@ -53,7 +53,7 @@ class DataGenerator(tf.keras.utils.Sequence):
             "contrast": A.CLAHE(p=0.5),
             "mblur": A.MotionBlur(blur_limit=17, p=0.5),
             "rotateb": A.Rotate(limit=45, p=0.5),
-            "rdcrop": A.RandomCrop(height=128, width=256, p=0.5),
+            "rdcrop": A.RandomCrop(height=img_height / 2, width=img_width / 2, p=0.5),
             "gnoise": A.GaussNoise(p=0.5),
         }
         if aug_list is not None:
@@ -169,7 +169,7 @@ class DataGenerator(tf.keras.utils.Sequence):
                         )
                         #!MASK have 2D > batch_y doesn't have to be explicit
                         batch_y[index] = np.where(ybis == 0, batch_y[index], ybis)
-        ⁡⁢⁢⁣# *𝗕𝗟𝗢𝗖 𝗠𝗢𝗦𝗔𝗜𝗖 #################################################⁡
+        # ⁡⁢⁢⁣*𝗕𝗟𝗢𝗖 𝗠𝗢𝗦𝗔𝗜𝗖 #################################################⁡
         if self.mosaic:
             xb = []
             yb = []
