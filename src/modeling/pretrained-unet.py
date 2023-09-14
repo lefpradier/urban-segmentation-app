@@ -84,16 +84,16 @@ def makerun(cfg: DictConfig):
     #! model architecture : compile
     # ?class weight based on imbalance, cf test_init
     #!Define class weights betwee 0-1
-    w = [
-        1 / 0.106**2,
-        1 / 0.389**2,
-        1 / 0.218**2,
-        1 / 0.018**2,
-        1 / 0.145**2,
-        1 / 0.036**2,
-        1 / 0.012**2,
-        1 / 0.075**2,
-    ]
+    # w = [
+    #     1 / 0.106**2,
+    #     1 / 0.389**2,
+    #     1 / 0.218**2,
+    #     1 / 0.018**2,
+    #     1 / 0.145**2,
+    #     1 / 0.036**2,
+    #     1 / 0.012**2,
+    #     1 / 0.075**2,
+    # ]
 
     #!regularization of all layers
     # model = set_regularization(model, kernel_regularizer=tf.keras.regularizers.l2(0.01))
