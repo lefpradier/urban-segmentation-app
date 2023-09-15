@@ -2,7 +2,7 @@ user_config:
 
 generator:
   auglist: hflip_rotateb_gnoise
-  mosaic:
+  mosaic: True
   oversampling:
   
 model:
@@ -10,4 +10,4 @@ model:
 
 
 mlflow:
-  run_name: pretrained_unet_effnet_smallaug
+  run_name: pretrained_unet_effnet_smallaug_mosaic

@@ -2,12 +2,15 @@ user_config:
 
 generator:
   auglist: hflip_rotateb_gnoise
-  mosaic:
   oversampling:
+  mosaic:
   
 model:
+  name: FPN
   backbone: efficientnetb4
+  model_type: fpn
 
 
 mlflow:
-  run_name: pretrained_unet_effnet_smallaug
+  experiment_name: pretrained_fpn
+  run_name: fpn_effnet_smallaug

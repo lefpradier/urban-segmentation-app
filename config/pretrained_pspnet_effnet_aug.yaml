@@ -1,0 +1,15 @@
+user_config:
+
+
+generator:
+  auglist: hflip_rotateb_gnoise_rdcrop
+  
+model:
+  name: PSPNET
+  backbone: efficientnetb4
+  model_type: pspnet
+
+
+mlflow:
+  experiment_name: pretrained_pspn
+  run_name: pspn_effnet_aug

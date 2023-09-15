@@ -4,8 +4,8 @@ generator:
   auglist: hflip_rotateb_gnoise_rdcrop
   
 model:
-  backbone: resnet101
+  backbone: resnet50
 
 
 mlflow:
-  run_name: pretrained_unet_resnet101_aug
+  run_name: pretrained_unet_resnet50_aug

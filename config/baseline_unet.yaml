@@ -1,0 +1,7 @@
+user_config:
+
+model:
+  model_type: unet
+
+mlflow:
+  run_name: unet_vanilla

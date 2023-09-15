@@ -1,0 +1,13 @@
+user_config:
+
+generator:
+  auglist: hflip_rotateb_gnoise_rdcrop
+  mosaic:
+  oversampling:
+  
+model:
+  backbone: efficientnetb7
+
+
+mlflow:
+  run_name: pretrained_unet_effnet7_aug

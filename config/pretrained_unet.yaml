@@ -12,6 +12,8 @@ generator:
   workers: 12
   batch_size: 16
   auglist:
+  mosaic:
+  oversampling:
   
 model:
   loss_function: DiceLoss
