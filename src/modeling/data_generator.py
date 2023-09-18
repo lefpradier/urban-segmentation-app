@@ -22,6 +22,7 @@ class DataGenerator(tf.keras.utils.Sequence):
         img_width=256,
         mosaic=False,
         oversampling=False,
+        seed=42,
     ):
         "Initialization"
         #!batch size TOUJOURS LA MÊME CAR SOIT AUG SOIT IMG
@@ -43,6 +44,8 @@ class DataGenerator(tf.keras.utils.Sequence):
         }
         self.mosaic = mosaic
         self.oversampling = oversampling
+        random.seed(seed)
+        np.random.seed(seed)
         #!FILTER DICT
         filter_dict = {
             "hflip": A.HorizontalFlip(p=0.5),

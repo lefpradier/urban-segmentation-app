@@ -14,6 +14,7 @@ generator:
   auglist:
   mosaic:
   oversampling:
+  seed: 42
   
 model:
   loss_function: DiceLoss

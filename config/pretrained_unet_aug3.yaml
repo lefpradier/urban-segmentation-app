@@ -1,0 +1,8 @@
+user_config:
+
+generator:
+  auglist: hflip_gnoise_rotateb
+  seed: 42
+
+mlflow:
+  run_name: unet_mobilenet_simpleaug3

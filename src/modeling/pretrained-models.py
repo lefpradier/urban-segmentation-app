@@ -66,6 +66,7 @@ def makerun(cfg: DictConfig):
         img_width=cfg.data.input_width,
         mosaic=mosaic,
         oversampling=oversampling,
+        seed=cfg.generator.seed,
     )
     validation_generator = DataGenerator(
         img_list=x_valid,
@@ -76,7 +77,6 @@ def makerun(cfg: DictConfig):
         img_width=cfg.data.input_width,
     )
 
-    #! get model architecture
     # ⁡⁣⁣⁢𝗠𝗢𝗗𝗘𝗟𝗦⁡
     #! get model architecture
     if cfg.model.model_type == "unet":
@@ -143,6 +143,10 @@ def makerun(cfg: DictConfig):
             "loss_function": cfg.model.loss_function,
             "model_type": cfg.model.model_type,
             "backbone": cfg.model.backbone,
+            "augmentation": cfg.generator.auglist,
+            "oversampling": cfg.generator.oversampling,
+            "mosaic": cfg.generator.mosaic,
+            "seed": cfg.generator.seed,
         }
 
         #! suivie params mlflow
@@ -202,7 +206,9 @@ def makerun(cfg: DictConfig):
 
         mlflow.log_metrics(scores)
         mlflow.tensorflow.log_model(
-            model, registered_model_name=cfg.model.name, artifact_path="UNET"
+            model,
+            registered_model_name=cfg.model.name,
+            artifact_path=cfg.model.model_type,
         )
 
 

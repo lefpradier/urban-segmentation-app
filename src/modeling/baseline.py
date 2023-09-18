@@ -60,6 +60,7 @@ def makerun(cfg: DictConfig):
         aug_list=aug_list,
         img_height=cfg.data.input_height,
         img_width=cfg.data.input_width,
+        seed=cfg.generator.seed
     )
     validation_generator = DataGenerator(
         img_list=x_valid,
@@ -104,6 +105,7 @@ def makerun(cfg: DictConfig):
             "loss_function": cfg.model.loss_function,
             "model_type": cfg.model.model_type,
             "backbone": cfg.model.backbone,
+            "seed":cfg.generator.seed
         }
 
         #! suivie params mlflow

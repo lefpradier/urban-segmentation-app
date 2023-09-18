@@ -4,8 +4,8 @@ generator:
   auglist: hflip_rotateb_gnoise
 
 model:
-  backbone: resnet101
+  backbone: efficientnetb4
 
 
 mlflow:
-  run_name: unet_resnet101
+  run_name: unet_effnetb4

@@ -12,6 +12,7 @@ generator:
   workers: 12
   batch_size: 16
   auglist:
+  seed: 42
   
 model:
   loss_function: DiceLoss

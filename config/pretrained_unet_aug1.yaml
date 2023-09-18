@@ -1,0 +1,7 @@
+user_config:
+
+generator:
+  auglist: hflip_mblur
+
+mlflow:
+  run_name: unet_mobilenet_simpleaug1

@@ -2,10 +2,7 @@ user_config:
 
 generator:
   auglist: hflip_rotateb_gnoise
-
-model:
-  backbone: resnet101
-
+  seed: 42
 
 mlflow:
-  run_name: unet_resnet101
+  run_name: unet_mobilenet_simpleaug2
