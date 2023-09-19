@@ -5,8 +5,8 @@ data:
   trainY: data/raw/P8_Cityscapes_gtFine_trainvaltest/gtFine/train
   validX: data/raw/P8_Cityscapes_leftImg8bit_trainvaltest/leftImg8bit/val
   validY: data/raw/P8_Cityscapes_gtFine_trainvaltest/gtFine/val
-  input_height: 128
-  input_width: 256
+  input_height: 144
+  input_width: 288
 
 generator:
   workers: 12
@@ -22,10 +22,9 @@ model:
   no_epochs: 15
   verbosity: 2
   name: UNET
-  backbone: mobilenetv2
-  model_type: unet
+  backbone: mobilenetv2, resnet101, efficientnetb4
+  model_type: unet, fpn, pspnet
 
 
 mlflow:
-  experiment_name: pretrained_unet
-  run_name: unet_mobilenet
+  experiment_name: models_without_aug

@@ -135,7 +135,7 @@ def makerun(cfg: DictConfig):
     print(model.summary())
 
     #!START RUN
-    with mlflow.start_run(run_name=cfg.mlflow.run_name) as run:
+    with mlflow.start_run() as run:
         params = {
             "n_epoch": cfg.model.no_epochs,
             "batch_size": cfg.generator.batch_size,
@@ -184,8 +184,12 @@ def makerun(cfg: DictConfig):
         ax.set_ylim(0, 1)
         ax.set_xlabel("Epoch")
         labelLines(ax.get_lines())
-        fig.savefig("plots/scores_epoch_%s.png" % cfg.mlflow.run_name)
-        mlflow.log_artifact("plots/scores_epoch_%s.png" % cfg.mlflow.run_name)
+        fig.savefig(
+            "plots/scores_epoch_%s_%s.png" % (cfg.model.model_type, cfg.model.backbone)
+        )
+        mlflow.log_artifact(
+            "plots/scores_epoch_%s_%s.png" % (cfg.model.model_type, cfg.model.backbone)
+        )
 
         #! EVALUATE MODEL : loss and cvscores
         # allow to test for overfitting
@@ -207,7 +211,7 @@ def makerun(cfg: DictConfig):
         mlflow.log_metrics(scores)
         mlflow.tensorflow.log_model(
             model,
-            registered_model_name=cfg.model.name,
+            registered_model_name=cfg.model.model_ty,
             artifact_path=cfg.model.model_type,
         )
 
