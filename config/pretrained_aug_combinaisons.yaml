@@ -12,6 +12,9 @@ generator:
   workers: 12
   batch_size: 16
   auglist:
+    geo: caca_boudin
+    col: 
+    ker: 
   mosaic:
   oversampling:
   seed: 42

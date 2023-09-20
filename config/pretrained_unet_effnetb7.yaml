@@ -1,7 +1,0 @@
-user_config:
-
-generator:
-  batch_size: 12
-
-model:
-  backbone: efficientnetb7

@@ -36,9 +36,16 @@ def makerun(cfg: DictConfig):
     mlflow.set_experiment(cfg.mlflow.experiment_name)
 
     # DATASETS
-    if cfg.generator.auglist is not None:
-        aug_list = cfg.generator.auglist.split("_")
-    else:
+    # TODO : INTEGRATION OF AUG_LIST NEW ARCHITECTURE
+    # *Transform 3 types of filter (aug_geo..) inst of aug_list
+    # concat des différents filtres en liste et purge des none
+    aug_list = (
+        str(cfg.generator.auglist.geo).split("_")
+        + str(cfg.generator.auglist.col).split("_")
+        + str(cfg.generator.auglist.ker).split("_")
+    )
+    aug_list = [x for x in aug_list if x != "None"]
+    if len(aug_list) == 0:
         aug_list = None
     x_train = [str(f) for f in Path(cfg.data.trainX).rglob("*.png")]
     y_train = [str(f) for f in Path(cfg.data.trainY).rglob("*labelIds.png")]

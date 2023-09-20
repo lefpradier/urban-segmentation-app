@@ -62,7 +62,9 @@ class DataGenerator(tf.keras.utils.Sequence):
             "gnoise": A.GaussNoise(p=0.5),
         }
         if aug_list is not None:
-            self.aug = A.Compose([filter_dict[x] for x in aug_list])
+            self.aug = A.Compose(
+                [filter_dict[x] for x in aug_list if x in filter_dict.keys()]
+            )
         else:
             self.aug = None
         self.on_epoch_end()

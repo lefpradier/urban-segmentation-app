@@ -1,0 +1,45 @@
+user_config:
+
+defaults:
+  - override hydra/sweeper: optuna
+  - override hydra/sweeper/sampler: grid
+
+hydra:
+  sweeper:
+    direction: [maximize, maximize]
+    _target_: hydra_plugins.hydra_optuna_sweeper.optuna_sweeper.OptunaSweeper
+    storage: null
+    study_name: null
+    n_jobs: 1
+    params:
+      model.model_type: choice(unet,fpn)
+      model.backbone: choice(mobilenetv2,resnet101)
+
+data:
+  trainX: data/raw/P8_Cityscapes_leftImg8bit_trainvaltest/leftImg8bit/train
+  trainY: data/raw/P8_Cityscapes_gtFine_trainvaltest/gtFine/train
+  validX: data/raw/P8_Cityscapes_leftImg8bit_trainvaltest/leftImg8bit/val
+  validY: data/raw/P8_Cityscapes_gtFine_trainvaltest/gtFine/val
+  input_height: 128
+  input_width: 256
+
+generator:
+  workers: 12
+  batch_size: 16
+  auglist:
+  mosaic:
+  oversampling:
+  seed: 42
+  
+model:
+  loss_function: DiceLoss
+  optimizer: adam
+  no_epochs: 15
+  verbosity: 2
+  name: UNET
+  backbone: mobilenetv2
+  model_type: unet
+
+
+mlflow:
+  experiment_name: models_without_aug

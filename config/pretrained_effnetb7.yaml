@@ -1,0 +1,10 @@
+user_config:
+
+hydra:
+  sweeper:
+    params:
+      model.backbone: efficientnetb7
+
+generator:
+  batch_size: 12
+
