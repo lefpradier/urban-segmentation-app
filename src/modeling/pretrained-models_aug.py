@@ -1,3 +1,5 @@
+from typing import Any
+from hydra.core.utils import JobReturn
 import numpy as np
 import tensorflow as tf
 import logging
@@ -7,6 +9,8 @@ from labellines import labelLines
 import hydra
 from omegaconf import DictConfig, OmegaConf
 
+import gc
+
 logging.basicConfig(level=logging.WARN)
 logger = logging.getLogger(__name__)
 import pandas as pd
@@ -14,6 +18,7 @@ import time
 import os
 import sys
 from pathlib import Path
+from hydra.experimental.callback import Callback
 
 sys.path.append("src/modeling/")
 
@@ -25,8 +30,25 @@ from data_generator import DataGenerator
 
 os.environ["XLA_FLAGS"] = "--xla_gpu_cuda_data_dir=/usr/lib/cuda"
 
+# TODO : LIMIT MEMORY USAGE
+# First, Get a list of GPU devices
+gpus = tf.config.list_physical_devices("GPU")
+# Restrict to only the first GPU.
+tf.config.set_visible_devices(gpus[:1], device_type="GPU")
+# Create a LogicalDevice with the appropriate memory limit
+log_dev_conf = tf.config.LogicalDeviceConfiguration(memory_limit=9 * 1024)  # 9 GB
+# Apply the logical device configuration to the first GPU
+tf.config.set_logical_device_configuration(gpus[0], [log_dev_conf])
 
-@hydra.main(version_base=None, config_path="../../config", config_name="pretrained")
+
+class mycallback(Callback):
+    def on_job_end(self, config: DictConfig, **kwargs: Any):
+        gc.collect()
+        tf.keras.backend.clear_session()
+        print("job end")
+
+
+@hydra.main(version_base=None, config_path="../../config", config_name="pretrained_aug")
 def makerun(cfg: DictConfig):
     # pass user_config as sys.arg to merge config files
     if cfg.user_config is not None:
@@ -82,6 +104,8 @@ def makerun(cfg: DictConfig):
         mosaic=mosaic,
         oversampling=oversampling,
         seed=cfg.generator.seed,
+        clim=cfg.generator.auglist.clim,
+        blim=cfg.generator.auglist.blim,
     )
     validation_generator = DataGenerator(
         img_list=x_valid,
@@ -148,7 +172,6 @@ def makerun(cfg: DictConfig):
         metrics=[sm.metrics.IOUScore(), sm.metrics.FScore()],
         run_eagerly=True,
     )
-    print(model.summary())
 
     #!START RUN
     with mlflow.start_run() as run:
@@ -186,28 +209,6 @@ def makerun(cfg: DictConfig):
             callbacks=[early_stopping],
         )
         time_spent = time.time() - start
-        print(history)
-
-        # ! PLOT TRAINING AND VALIDATION SCORES
-        plt.style.use("custom_dark")
-        fig, ax = plt.subplots(1)
-        ax.plot(history.history["f1-score"], label="FScore(Train)")
-        ax.plot(history.history["val_iou_score"], label="val_IOUScore(Validation)")
-        ax.plot(history.history["iou_score"], label="IOUScore(Train)")
-        ax.plot(history.history["val_f1-score"], label="val_FScore(Validation)")
-        ax.plot(history.history["loss"], label="Loss(Train)")
-        ax.plot(history.history["val_loss"], label="val_loss(Validation)")
-        ax.set_title("Scores and loss over epochs")
-        ax.set_ylabel("Value")
-        ax.set_ylim(0, 1)
-        ax.set_xlabel("Epoch")
-        labelLines(ax.get_lines())
-        fig.savefig(
-            "plots/scores_epoch_%s_%s.png" % (cfg.model.model_type, cfg.model.backbone)
-        )
-        mlflow.log_artifact(
-            "plots/scores_epoch_%s_%s.png" % (cfg.model.model_type, cfg.model.backbone)
-        )
 
         #! EVALUATE MODEL : loss and cvscores
         # allow to test for overfitting
@@ -232,6 +233,10 @@ def makerun(cfg: DictConfig):
             registered_model_name=cfg.model.model_type,
             artifact_path=cfg.model.model_type,
         )
+        # TODO : SANITY CHECK
+        del model
+        gc.collect()
+        tf.keras.backend.clear_session()
         return scores["IOUScore"], scores["FScore"]
 
 

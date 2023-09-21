@@ -23,6 +23,8 @@ class DataGenerator(tf.keras.utils.Sequence):
         mosaic=False,
         oversampling=False,
         seed=42,
+        clim=0.2,
+        blim=0.2,
     ):
         "Initialization"
         #!batch size TOUJOURS LA MÊME CAR SOIT AUG SOIT IMG
@@ -52,14 +54,16 @@ class DataGenerator(tf.keras.utils.Sequence):
             "rgb": A.RGBShift(p=0.5),
             "rotate": A.ShiftScaleRotate(p=0.5),
             "blur": A.Blur(blur_limit=11, p=0.5),
-            "bright": A.RandomBrightness(p=0.5),
             "contrast": A.CLAHE(p=0.5),
-            "mblur": A.MotionBlur(blur_limit=17, p=0.5),
-            "rotateb": A.Rotate(limit=45, p=0.5),
+            "mblur": A.MotionBlur(blur_limit=7, p=0.5),
+            "rotateb": A.Rotate(limit=30, p=0.5),
             "rdcrop": A.RandomCrop(
-                height=int(img_height / 2), width=int(img_width / 2), p=0.5
-            ),
+                height=768, width=1536, p=0.5
+            ),  #! 3/4 taille originale
             "gnoise": A.GaussNoise(p=0.5),
+            "bricon": A.RandomBrightnessContrast(
+                brightness_limit=blim, contrast_limit=clim, p=0.5
+            ),  # ?new filter
         }
         if aug_list is not None:
             self.aug = A.Compose(
