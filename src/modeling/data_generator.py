@@ -157,7 +157,7 @@ class DataGenerator(tf.keras.utils.Sequence):
                                 A.Affine(
                                     scale=(0.5, 2),
                                     translate_percent=(0, 0.5),
-                                    rotate=(-45, 45),
+                                    rotate=(-30, 30),
                                     p=1,
                                 )
                             ]
