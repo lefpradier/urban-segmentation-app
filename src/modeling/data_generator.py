@@ -47,7 +47,7 @@ class DataGenerator(tf.keras.utils.Sequence):
         self.mosaic = mosaic
         self.oversampling = oversampling
         random.seed(seed)
-        np.random.seed(seed)
+        np.random.seed(2 * seed)
         #!FILTER DICT
         filter_dict = {
             "hflip": A.HorizontalFlip(p=0.5),

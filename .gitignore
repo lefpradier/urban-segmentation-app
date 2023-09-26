@@ -3,3 +3,6 @@ garbage.sh
 mlruns
 outputs
 multirun
+hydra-ray-launcher-1.2.0
+logs
+src/modeling/__pycache__

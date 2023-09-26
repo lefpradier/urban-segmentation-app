@@ -1,3 +1,7 @@
+#!/usr/bin/env python3
+
+import sys
+
 from typing import Any
 from hydra.core.utils import JobReturn
 import numpy as np
@@ -16,7 +20,6 @@ logger = logging.getLogger(__name__)
 import pandas as pd
 import time
 import os
-import sys
 from pathlib import Path
 from hydra.experimental.callback import Callback
 
@@ -29,6 +32,7 @@ import glob
 from data_generator import DataGenerator
 
 os.environ["XLA_FLAGS"] = "--xla_gpu_cuda_data_dir=/usr/lib/cuda"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 # TODO : LIMIT MEMORY USAGE
 # First, Get a list of GPU devices
@@ -37,8 +41,13 @@ gpus = tf.config.list_physical_devices("GPU")
 tf.config.set_visible_devices(gpus[:1], device_type="GPU")
 # Create a LogicalDevice with the appropriate memory limit
 log_dev_conf = tf.config.LogicalDeviceConfiguration(memory_limit=9 * 1024)  # 9 GB
+# # try dynamix ressources allocation
+# tf.config.experimental.set_memory_growth(gpus[0], True)
 # Apply the logical device configuration to the first GPU
 tf.config.set_logical_device_configuration(gpus[0], [log_dev_conf])
+
+from datetime import datetime
+from packaging import version
 
 
 class mycallback(Callback):
@@ -50,6 +59,7 @@ class mycallback(Callback):
 
 @hydra.main(version_base=None, config_path="../../config", config_name="pretrained_aug")
 def makerun(cfg: DictConfig):
+    tf.keras.backend.clear_session()
     # pass user_config as sys.arg to merge config files
     if cfg.user_config is not None:
         user_config = OmegaConf.load(cfg.user_config)
@@ -198,6 +208,7 @@ def makerun(cfg: DictConfig):
         early_stopping = tf.keras.callbacks.EarlyStopping(
             monitor="val_loss", patience=3
         )
+
         #! FIT MODEL
         history = model.fit(
             x=training_generator,
@@ -235,9 +246,12 @@ def makerun(cfg: DictConfig):
         )
         # TODO : SANITY CHECK
         del model
+        del training_generator
+        del validation_generator
+        del history
         gc.collect()
         tf.keras.backend.clear_session()
-        return scores["IOUScore"], scores["FScore"]
+    return scores["IOUScore"], scores["FScore"]
 
 
 #!regularisation function of the CNN
