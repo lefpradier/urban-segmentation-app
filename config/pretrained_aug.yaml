@@ -25,6 +25,10 @@ generator:
   mosaic:
   oversampling:
   seed: 42
+  oversampling_n: 0
+  oversampling_max: 2000
+  attention_mask: 
+  attention_mask_size:
   
 model:
   loss_function: DiceLoss

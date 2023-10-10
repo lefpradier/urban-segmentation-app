@@ -52,8 +52,8 @@ from packaging import version
 
 class mycallback(Callback):
     def on_job_end(self, config: DictConfig, **kwargs: Any):
-        gc.collect()
         tf.keras.backend.clear_session()
+        gc.collect()
         print("job end")
 
 
@@ -89,11 +89,16 @@ def makerun(cfg: DictConfig):
     y_valid.sort()
     mosaic = False
     oversampling = False
+    attention_mask = False
+    attention_mask_size = False
     if cfg.generator.mosaic == "True":
         mosaic = True
     if cfg.generator.oversampling == "True":
         oversampling = True
-
+    if cfg.generator.attention_mask == "True":
+        attention_mask = True
+    if cfg.generator.attention_mask_size == "True":
+        attention_mask_size = True
     #! Reshape inputs for pspnet
     if cfg.model.model_type == "pspnet":
         ratio_wh = cfg.data.input_width / cfg.data.input_height
@@ -116,6 +121,10 @@ def makerun(cfg: DictConfig):
         seed=cfg.generator.seed,
         clim=cfg.generator.auglist.clim,
         blim=cfg.generator.auglist.blim,
+        oversampling_n=cfg.generator.oversampling_n,
+        oversampling_max=cfg.generator.oversampling_max,
+        attention_mask=attention_mask,
+        attention_mask_size=attention_mask_size,
     )
     validation_generator = DataGenerator(
         img_list=x_valid,
@@ -161,14 +170,14 @@ def makerun(cfg: DictConfig):
     # ?class weight based on imbalance, cf test_init
     #!Define class weights betwee 0-1
     # w = [
-    #     1 / 0.106**2,
-    #     1 / 0.389**2,
-    #     1 / 0.218**2,
-    #     1 / 0.018**2,
-    #     1 / 0.145**2,
-    #     1 / 0.036**2,
-    #     1 / 0.012**2,
-    #     1 / 0.075**2,
+    #     1 / 0.106,
+    #     1 / 0.389,
+    #     1 / 0.218,
+    #     1 / 0.018,
+    #     1 / 0.145,
+    #     1 / 0.036,
+    #     1 / 0.012,
+    #     1 / 0.075,
     # ]
 
     #!regularization of all layers
@@ -176,7 +185,6 @@ def makerun(cfg: DictConfig):
 
     #!COMPILE
     model.compile(
-        # loss=focal_tversky_loss,
         loss=loss(),  # class_weights=[x / np.sum(w) for x in w]),
         optimizer=cfg.model.optimizer,  # tf.keras.optimizers.Adam(weight_decay=0.004)
         metrics=[sm.metrics.IOUScore(), sm.metrics.FScore()],
@@ -198,12 +206,17 @@ def makerun(cfg: DictConfig):
             "seed": cfg.generator.seed,
             "height": cfg.data.input_height,
             "width": cfg.data.input_width,
+            "oversampling_n": cfg.generator.oversampling_n,
+            "oversampling_max": cfg.generator.oversampling_max,
+            "attention_mask_size": cfg.generator.attention_mask_size,
         }
 
         #! suivie params mlflow
         mlflow.log_params(params)
         start = time.time()
 
+        # log_dir="logs/" + datetime.now().strftime("%Y%m%d-%H%M%S")
+        # tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, profile_batch=3)
         #!Early stopping
         early_stopping = tf.keras.callbacks.EarlyStopping(
             monitor="val_loss", patience=3
@@ -251,6 +264,7 @@ def makerun(cfg: DictConfig):
         del history
         gc.collect()
         tf.keras.backend.clear_session()
+        gc.collect()
     return scores["IOUScore"], scores["FScore"]
 
 
