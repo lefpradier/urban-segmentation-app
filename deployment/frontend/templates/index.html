@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Semantic segmentation of urban pictures</title>
+    <meta charset="utf-8">
+	<meta name="author" content="LéaPradier">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0,maximum-scale=1,user-scalable=no">
+    <link rel="stylesheet" href="/static/AppStyle.css">
+
+
+</head>
+<body>
+
+    <div class="page">
+    <div class="model_desc">
+    <h2> Model Description </h2><br>
+    <p><img src="/static/icon/target.png" alt="aim" border="0" width="24" height="24" />This web application provides semantic segmentation of urban pictures.</p>
+    <p>Choose a picture to predict its segmentation.</p>
+</div>
+    <h1>Urban landscape segmentation</h1>
+    <div class="prediction">
+    <div class="form">
+    <form action="{{url_for('predict')}}" method="post">
+        <select name="comp_select" class="Input" required>
+              {% for o in files %}
+              {% if o == files[0] %}
+              <option value="{{ o }}">&#xf040 {{o}}</option>
+              {% else %}
+              <option value="{{ o }}">{{o}}</option>
+              {% endif %}
+              {% endfor %}
+            </select>
+        <button type="submit" class="pred-btn"><img src="/static/icon/crystal-ball.png" alt="predictimg" border="0" width="24" height="24" /> Predict </button>
+
+</form>
+</div><br>
+{% if showimage %}
+<img class="prediction" src={{prediction_image}} alt="Prediction" style="float:right" />
+{% elif showmessage %}
+<h2>{{prediction_text}}</h2>
+{% endif %}
+</div>
+
+</div>
+
+<footer>©2023 Léa Pradier</footer>
+
+
+</body>
+</html>

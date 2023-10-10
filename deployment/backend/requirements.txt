@@ -1,0 +1,7 @@
+# backend/requirements.txt
+fastapi
+numpy
+python-multipart
+uvicorn
+asyncio
+tensorflow==2.11

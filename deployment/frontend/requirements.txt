@@ -1,0 +1,7 @@
+# backend/requirements.txt
+flask
+numpy
+python-multipart
+requests
+matplotlib
+opencv-python
