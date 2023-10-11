@@ -26,11 +26,11 @@ jobs:
       matrix:
         include:
           - app: 'urban-segmentation-app'
-            artifact: 'app'
+            artifact: 'projet8-app'
             profileName: 'APP'
             dockerfile: './deployment/frontend/Dockerfile'
           - app: 'urban-segmentation-api'
-            artifact: 'api'
+            artifact: 'projet8-api'
             profileName: 'API'
             dockerfile: './deployment/backend/Dockerfile'
 
@@ -51,14 +51,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Lowercase the repo name
-        run: echo "REPO=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
-
       - name: Build and push container image to registry
         uses: docker/build-push-action@v4
         with:
           push: true
-          tags: ghcr.io/${{ env.REPO }}/${{ matrix.artifact }}:${{ github.sha }}
+          tags: ghcr.io/${{ github.actor }}/${{ matrix.artifact }}:${{ github.sha }}
           file: ${{ matrix.dockerfile }}
 
       - name: Deploy to Azure Web App
@@ -67,4 +64,4 @@ jobs:
         with:
           app-name: ${{ matrix.app }}
           publish-profile: ${{ secrets[matrix.profileName] }}
-          images: 'ghcr.io/${{ env.REPO }}/${{ matrix.artifact }}:${{ github.sha }}'
+          images: 'ghcr.io/${{ github.actor }}/${{ matrix.artifact }}:${{ github.sha }}'
