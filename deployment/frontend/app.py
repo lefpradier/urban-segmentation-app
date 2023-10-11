@@ -87,7 +87,8 @@ def predict():
         showmessage=showmessage,
     )
 
-@app.errorhandler(NotFound):
+
+@app.errorhandler(NotFound)
 def page_not_found(e: HTTPException):
     return render_template("404.html"), 404
 
