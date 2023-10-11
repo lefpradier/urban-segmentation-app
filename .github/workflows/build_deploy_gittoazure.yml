@@ -53,7 +53,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           push: true
-          tags: ghcr.io/${{ env.REPO }}:${{ github.sha }}
+          tags: ghcr.io/lefpradier/PROJET_8:${{ github.sha }}
           file: ${{ matrix.dockerfile }}
 
       - name: Deploy to Azure Web App
@@ -62,4 +62,4 @@ jobs:
         with:
           app-name: ${{ matrix.app }}
           publish-profile: ${{ secrets[matrix.profileName] }}
-          images: 'ghcr.io/${{ env.REPO }}:${{ github.sha }}'
+          images: 'ghcr.io/lefpradier/PROJET_8:${{ github.sha }}'
