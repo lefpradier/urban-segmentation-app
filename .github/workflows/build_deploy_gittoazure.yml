@@ -29,6 +29,10 @@ jobs:
             artifact: 'projet8-app'
             profileName: 'APP'
             dockerfile: './deployment/frontend/Dockerfile'
+          - app: 'urban-segmentation-api'
+            artifact: 'projet8-api'
+            profileName: 'API'
+            dockerfile: './deployment/backend/Dockerfile'
 
     environment:
       name: "production"
@@ -54,7 +58,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           push: true
-          tags: ghcr.io/${{ env.REPO }}:${{ github.sha }}
+          tags: ghcr.io/${{ env.REPO }}:${{ matrix.artifact }}
           file: ${{ matrix.dockerfile }}
 
       - name: Deploy to Azure Web App
@@ -63,4 +67,4 @@ jobs:
         with:
           app-name: ${{ matrix.app }}
           publish-profile: ${{ secrets[matrix.profileName] }}
-          images: 'ghcr.io/${{ env.REPO }}:${{ github.sha }}'
+          images: 'ghcr.io/${{ env.REPO }}:${{ matrix.artifact }}'
