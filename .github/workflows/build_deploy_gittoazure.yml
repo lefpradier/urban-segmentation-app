@@ -51,11 +51,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Lowercase the repo name
+        run: echo "REPO=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
+
       - name: Build and push container image to registry
         uses: docker/build-push-action@v4
         with:
           push: true
-          tags: ghcr.io/${{ github.actor }}/${{ matrix.artifact }}:${{ github.sha }}
+          tags: ghcr.io/${{ env.REPO }}:${{ matrix.artifact }}
           file: ${{ matrix.dockerfile }}
 
       - name: Deploy to Azure Web App
@@ -64,4 +67,4 @@ jobs:
         with:
           app-name: ${{ matrix.app }}
           publish-profile: ${{ secrets[matrix.profileName] }}
-          images: 'ghcr.io/${{ github.actor }}/${{ matrix.artifact }}:${{ github.sha }}'
+          images: 'ghcr.io/${{ env.REPO }}:${{ matrix.artifact }}'
