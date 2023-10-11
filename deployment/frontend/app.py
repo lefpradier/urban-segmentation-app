@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, request
 import json
 import requests
 from utils import listfiles, load_resize_img, plot_image, convert_response
@@ -13,7 +13,7 @@ from werkzeug.exceptions import NotFound, HTTPException
 files = listfiles("static/images/")
 files = [f.split("_leftImg")[0] for f in files]
 files = ["Choose a picture"] + files
-
+print(files)
 app = Flask(__name__)
 
 
@@ -94,4 +94,4 @@ def page_not_found(e: HTTPException):
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port="5000")
+    app.run(debug=True, host="0.0.0.0", port="5000")
