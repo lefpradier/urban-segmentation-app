@@ -1,0 +1,71 @@
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+# GitHub recommends pinning actions to a commit SHA.
+# To get a newer version, you will need to update the SHA.
+# You can also reference a tag or branch, but the action may change without warning.
+
+name: Build and deploy two containers to Azure Web Apps
+
+on:
+  push:
+    branches:
+      - main
+      - deployment
+
+permissions:
+  contents: 'read'
+  packages: 'write'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - app: 'urban-segmentation-app'
+            artifact: 'app'
+            profileName: 'APP'
+            workdir: './deployment/frontend'
+          - app: 'urban-segmentation-api'
+            artifact: 'api'
+            profileName: 'API'
+            workdir: './deployment/backend'
+
+    environment:
+      name: "production"
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to GitHub container registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Lowercase the repo name
+        run: echo "REPO=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
+
+      - name: Build and push container image to registry
+        working-directory: ${{ matrix.workdir }} 
+        uses: docker/build-push-action@v4
+        with:
+          push: true
+          tags: ghcr.io/${{ env.REPO }}/${{ matrix.artifact }}:${{ github.sha }}
+          file: Dockerfile
+
+      - name: Deploy to Azure Web App
+        id: deploy-to-webapp
+        uses: azure/webapps-deploy@85270a1854658d167ab239bce43949edb336fa7c
+        with:
+          app-name: ${{ matrix.app }}
+          publish-profile: ${{ secrets[matrix.profileName] }}
+          images: 'ghcr.io/${{ env.REPO }}/${{ matrix.artifact }}:${{ github.sha }}'
