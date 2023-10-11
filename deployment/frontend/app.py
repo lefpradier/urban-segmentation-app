@@ -5,6 +5,7 @@ import requests
 from utils import listfiles, load_resize_img, plot_image, convert_response
 import numpy as np
 import random
+from werkzeug.exceptions import NotFound, HTTPException
 
 # from functions import extract_keywords
 
@@ -85,6 +86,10 @@ def predict():
         showimage=showimage,
         showmessage=showmessage,
     )
+
+@app.errorhandler(NotFound):
+def page_not_found(e: HTTPException):
+    return render_template("404.html"), 404
 
 
 if __name__ == "__main__":
