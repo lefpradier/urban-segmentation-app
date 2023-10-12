@@ -12,8 +12,8 @@ from werkzeug.exceptions import NotFound, HTTPException
 ####### UTILS FCT
 files = listfiles("static/images/")
 files = [f.split("_leftImg")[0] for f in files]
+files.sort()
 files = ["Choose a picture"] + files
-print(files)
 app = Flask(__name__)
 
 

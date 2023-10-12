@@ -12,14 +12,13 @@
 </head>
 <body>
 
-    <div class="page">
     <div class="model_desc">
     <h2> Model Description </h2><br>
     <p><img src="/static/icon/target.png" alt="aim" border="0" width="24" height="24" />This web application provides semantic segmentation of urban pictures.</p>
     <p>Choose a picture to predict its segmentation.</p>
-</div>
+    </div>
+
     <h1>Urban landscape segmentation</h1>
-    <div class="prediction">
     <div class="form">
     <form action="{{url_for('predict')}}" method="post">
         <select name="comp_select" class="Input" required>
@@ -32,20 +31,15 @@
               {% endfor %}
             </select>
         <button type="submit" class="pred-btn"><img src="/static/icon/crystal-ball.png" alt="predictimg" border="0" width="24" height="24" /> Predict </button>
-
-</form>
-</div><br>
+    </form>
+    </div>
 {% if showimage %}
 <img class="prediction" src={{prediction_image}} alt="Prediction" style="float:right" />
 {% elif showmessage %}
-<h2>{{prediction_text}}</h2>
+<h3>{{prediction_text}}</h3>
 {% endif %}
-</div>
-
-</div>
 
 <footer>©2023 Léa Pradier</footer>
-
 
 </body>
 </html>
