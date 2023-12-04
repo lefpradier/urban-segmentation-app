@@ -7,3 +7,6 @@ hydra-ray-launcher-1.2.0
 logs
 src/modeling/__pycache__
 logdir
+.trash
+tests_init.ipynb
+.tokeep

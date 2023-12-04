@@ -9,6 +9,12 @@ plt.style.use("custom_dark")
 
 
 def px_count(image):
+    """
+    Counts pixels in an image
+    ---
+    Parameters:
+    - image: np.array
+    """
     cond = np.where(
         (image[:, :, 0] != 0) | (image[:, :, 1] != 0) | (image[:, :, 2] != 0), 1, 0
     )
@@ -17,7 +23,7 @@ def px_count(image):
 
 
 class DataGenerator(tf.keras.utils.Sequence):
-    "Generates data for Keras"
+    "Generates data for Keras on the fly with possibility for multithreading"
 
     def __init__(
         self,
@@ -38,7 +44,27 @@ class DataGenerator(tf.keras.utils.Sequence):
         attention_mask=False,
         attention_mask_size=False,
     ):
-        "Initialization"
+        """
+        Initialization
+        ---
+        Parameters:
+        - img_list: list of image paths
+        - mask_list: list of mask paths
+        - batch_size: int
+        - shuffle: boolean
+        - aug_list: list of strings to choose among the keys of the filter_dict dictionary
+        - img_height: int
+        - img_width: int
+        - mosaic: boolean, choose whether mosaic augmentation should be applied
+        - oversampling: boolean, choose whether oversampling of minority classes should be applied
+        - seed: int
+        - clim: float between 0 and 1, range of contrast augmentation
+        - blim: float between 0 and 1, range of brightness augmentation
+        - oversampling_n: int, number of possible oversampled instances in an image
+        - oversampling_max: int, area (number of pixels) under which oversampling can be applied
+        - attention_mask: boolean, choose whether attention mask augmentation should be applied
+        - attentin_mask_size: boolean, choose whether attention mask augmentation based on size should be applied
+        """
         #!batch size TOUJOURS LA MÊME CAR SOIT AUG SOIT IMG
         self.batch_size = batch_size
         self.img_list = img_list
@@ -67,7 +93,7 @@ class DataGenerator(tf.keras.utils.Sequence):
         self.nepoch = -1
         random.seed(seed)
         np.random.seed(2 * seed)
-        #!FILTER DICT
+        #! FILTER DICT: Dictionary among which image augmentation methods can be chosen
         filter_dict = {
             "hflip": A.HorizontalFlip(p=0.5),
             "rgb": A.RGBShift(p=0.5),
@@ -78,15 +104,15 @@ class DataGenerator(tf.keras.utils.Sequence):
             "rotateb": A.Rotate(limit=30, p=0.5),
             "rdcrop": A.RandomCrop(
                 height=768, width=1536, p=0.5
-            ),  #! 3/4 taille originale
+            ),  #! 3/4 of original size
             "upcrop": A.Crop(x_min=0, x_max=2048, y_min=0, y_max=512, p=0.5),
             "rdtile": A.RandomCrop(
                 height=256, width=512, p=0.5
-            ),  #! 1/4 taille originale
+            ),  #! 1/4 of original size
             "gnoise": A.GaussNoise(p=0.5),
             "bricon": A.RandomBrightnessContrast(
                 brightness_limit=blim, contrast_limit=clim, p=0.5
-            ),  # ?new filter
+            ),
         }
         if aug_list is not None:
             self.aug = A.Compose(
@@ -110,8 +136,9 @@ class DataGenerator(tf.keras.utils.Sequence):
             np.random.shuffle(self.indexes)
 
     #####################################################MOSAIC AUGMENTATION
-    #!GET ITEM  : AVEC POSSIBLE MOSAIC AUGMENTATION ET OVERSAMPLING
+    #!GET ITEM
     def __getitem__(self, idx):
+        "Selects and preprocesses items that will be sent to Keras on a given batch"
         idx = [
             i
             for i in range(
@@ -122,20 +149,22 @@ class DataGenerator(tf.keras.utils.Sequence):
         batch_x, batch_y = [], []
         drawn = 0
         for i in idx:
-            #!chargement de l'image
+            #! Load image
             _image = cv2.imread(self.img_list[self.indexes[i]])
-            #!chargement du masque
+            #! Load mask in gray levels
             img = cv2.imread(self.mask_list[self.indexes[i]], cv2.IMREAD_COLOR)
             img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            #! Check if the image contains underrepresented classes (useful for some augmentation methods)
             contains_small = False
             if np.any(
                 np.isin(img, self.cats["human"]) | np.isin(img, self.cats["object"])
             ):
                 contains_small = True
-            #!pour appliquer la suite sur img et aug
+            #! Apply augmentation techniques
             if self.aug is not None:
+                # Apply augmentation with Albumentations
                 augmented = self.aug(image=_image, mask=img)
-                #!TEST UPCROP
+                # Upcrop technique: make sure the image contains underrepresented classes
                 if augmented["image"].shape[0] / augmented["image"].shape[1] < 0.5:
                     augmenter = A.Compose([A.RandomCrop(height=512, width=1024, p=1)])
                     augmented = augmenter(
@@ -156,33 +185,28 @@ class DataGenerator(tf.keras.utils.Sequence):
                         augmented = self.aug(image=_image, mask=img)
                         trials += 1
                 _image, img = augmented["image"], augmented["mask"]
-            #!resize img
+            #! Resize img
             img = cv2.resize(img, (self.img_width, self.img_height))
             _image = cv2.resize(_image, (self.img_width, self.img_height))
-            #!RENDRE LISIBLE LE MASQUE
-            #!transforme le masque pour chaque sous px de l'image en 8 cat avec  0
             img = np.squeeze(img)
-            #!reshape en 2D : input model?
-            #!append les images segmentées (mask) et les images brutes _image en couples pour input modèle
+            #! Append the masks and raw images to the input pile for Keras
             batch_y.append(img)
             batch_x.append(_image / 255.0)
             drawn += 1
-            # fct de corrections APRES BATCH X ET Y
-        # *𝗕𝗟𝗢𝗖 𝗢𝗩𝗘𝗥𝗦𝗔𝗠𝗣𝗟𝗜𝗡𝗚 #################################################
+        # *𝗢𝗩𝗘𝗥𝗦𝗔𝗠𝗣𝗟𝗜𝗡𝗚 #################################################
         if self.oversampling:
-            #!2.isoler les px concernés sur chacune de ces images=mask
+            #! Isolate the pixels corresponding to the underrepresented classes
             coord = {"human": [], "object": []}
-            #!chargement de l'image
             indice = 0
             for _image, img in zip(batch_x, batch_y):
-                #!Recup des px concernés par la classe
+                #! Get the pixels for each of the underrepresented classes
                 for c in ["human", "object"]:
                     if np.any(
                         np.isin(img, self.cats[c])
-                    ):  # img avec des px dans ces cats
+                    ):  # imgs with pixels in the concerned class
                         sampled_mask = np.where(
                             np.isin(img, self.cats[c]), img, 0
-                        )  # rempli les non cats par des 0
+                        )  # Fill the other classes with zeroes
                         #!work on 3D of each images (RGB > mask only got 2 because of BW encoding)
                         sampled_img = np.zeros((_image.shape[0], _image.shape[1], 3))
                         sampled_img[:, :, 0] = np.where(
@@ -196,8 +220,7 @@ class DataGenerator(tf.keras.utils.Sequence):
                         )
                         coord[c].append((sampled_mask, sampled_img, indice))
                 indice += 1
-            #!3.Tirage aléatoire de x élements qui vont recevoir le mask (concerné et non concerné)
-            # lecture des masks des catégories tirés pour la mosaic
+            #! Copy-pasting of the isolated pixels on the original images
             for c in coord.keys():
                 for patch_y, patch_x, index in coord[c]:
                     for rep in range(self.oversampling_n):
@@ -205,11 +228,7 @@ class DataGenerator(tf.keras.utils.Sequence):
                         if npx > 0:
                             scale_min = self.oversampling_max / npx
                             scale_max = 100 / npx
-                            # indices = random.choices(
-                            # #     [idx for idx in range(len(batch_x))], k=self.oversampling_n
-                            # )
-                            # for index in indices:
-                            #!4.Transformation du mask : augmentation (rotate, enlarge, miror)
+                            #! Transformation of the isolated pixels: rotation, enlargement, mirror
                             trials = 0
                             while trials < 20:
                                 trials += 1
@@ -226,14 +245,13 @@ class DataGenerator(tf.keras.utils.Sequence):
                                         )
                                     ]
                                 )
-                                # recup mask aug and comp of template size
                                 temp = aug_mask(image=patch_x, mask=patch_y)
                                 npx = px_count(temp["image"])
                                 tempup = temp["image"][
                                     : int(2 * self.img_height / 3), :, :
                                 ]
                                 npxup = px_count(tempup)
-                                # TODO : comptage des px où le template n'est pas vide et où le mask contient certaines cats (flat)
+                                # Count pixels where the mask isn't empty and contains overrepresented categories
                                 cond = np.where(
                                     (
                                         (temp["image"][:, :, 0] != 0)
@@ -253,24 +271,10 @@ class DataGenerator(tf.keras.utils.Sequence):
                                     0,
                                 )
                                 npx_overlap = np.sum(cond)
-                                #!FRACTION DES PX DANS LE HAUT DE IMG
-                                if (
-                                    npx_overlap > 0.67 * npx
-                                ):  # TODO : eventuellement hyperparam
+                                #! Count proportion of pixels in the upper part of the image
+                                if npx_overlap > 0.67 * npx:
                                     xbis, ybis = temp["image"], temp["mask"]
-                                    #!5.Collage du mask en définissant le point d'ancrage
-                                    # coller mask dans img tirée
-                                    #!IMG have 3D > batch_x has to be explicit on the 3rd dim
-                                    # print("warning : red still here")
-                                    # batch_x[index][:, :, 0] = np.where(
-                                    #     ybis == 0, batch_x[index][:, :, 0], 1
-                                    # )
-                                    # batch_x[index][:, :, 1] = np.where(
-                                    #     ybis == 0, batch_x[index][:, :, 1], 0
-                                    # )
-                                    # batch_x[index][:, :, 2] = np.where(
-                                    #     ybis == 0, batch_x[index][:, :, 2], 0
-                                    # )
+                                    #! Paste the isolated pixels
                                     batch_x[index][:, :, 0] = np.where(
                                         ybis == 0,
                                         batch_x[index][:, :, 0],
@@ -291,22 +295,22 @@ class DataGenerator(tf.keras.utils.Sequence):
                                         ybis == 0, batch_y[index], ybis
                                     )
                                     break
-                                    # if trials too large > try new img for template (y, patch_x)
-        # ⁡⁢⁢⁣*𝗕𝗟𝗢𝗖 𝗠𝗢𝗦𝗔𝗜𝗖 #################################################⁡
+                                    # if trials too large, then abandon
+        # ⁡⁢⁢⁣*𝗠𝗢𝗦𝗔𝗜𝗖 #################################################⁡
         if self.mosaic:
             xb = []
             yb = []
             for idx in range(self.batch_size):
-                #!choisir 4 images
+                #! Choose 4 images
                 if len(batch_x) >= 4:
                     indices = random.sample([idx for idx in range(len(batch_x))], k=4)
                 else:
                     indices = random.choices([idx for idx in range(len(batch_x))], k=4)
-                #!les coller ensemble dans un masque de taille 4x4
-                # creation du template
+                #! Paste them together on a 4x4 template
+                # creation of the template
                 patch_x = np.zeros((2 * self.img_height, 2 * self.img_width, 3))
                 patch_y = np.zeros((2 * self.img_height, 2 * self.img_width))
-                # remplissage
+                # Fill the template
                 # 1 img
                 patch_x[self.img_height :, : self.img_width, :] = batch_x[indices[0]]
                 patch_y[self.img_height :, : self.img_width] = batch_y[indices[0]]
@@ -319,31 +323,31 @@ class DataGenerator(tf.keras.utils.Sequence):
                 # 4
                 patch_x[: self.img_height, self.img_width :, :] = batch_x[indices[3]]
                 patch_y[: self.img_height, self.img_width :] = batch_y[indices[3]]
-                #!découper une fenetre du template avec albumentation
+                #! Cut a window in the template with albumentation
                 crop = A.Compose(
                     [A.RandomCrop(height=self.img_height, width=self.img_width, p=1)]
                 )
-                # recup mask aug
+                # Get augmented mask
                 temp = crop(image=patch_x, mask=patch_y)
                 xbis, ybis = temp["image"], temp["mask"]
                 xb.append(xbis)
                 yb.append(ybis)
             batch_x = xb
             batch_y = yb
-        # *𝗕𝗟𝗢𝗖#ATTENTION MASK ##########################################
+        # *ATTENTION MASK ##########################################
         if self.attention_mask:
             for idx in range(len(batch_y)):
-                #!1.contient human ou object
+                #! Check if the image contains any of the underrepresented classes
                 if np.any(
                     np.isin(batch_y[idx], self.cats["human"])
                     | np.isin(batch_y[idx], self.cats["object"])
                 ):
-                    #! proba de attention diminue avec le nepoch
+                    #! Probability of selective attention decreases with epochs
                     p = 0.8
                     p = p - (0.8 / 30) * (self.nepoch)
-                    # application de la proba de transfo des img, tirage des img mod ou non
+                    # Apply the transformation probability to the images
                     if random.uniform(0, 1) < p:
-                        #!remplacer tous les px non cat en noir ou en flat sur le mask
+                        #! Replace all the other pixels in black in the image (respectively 'flat' in the mask)
                         batch_x[idx][:, :, 0] = np.where(
                             np.isin(
                                 batch_y[idx], self.cats["human"] + self.cats["object"]
@@ -373,6 +377,7 @@ class DataGenerator(tf.keras.utils.Sequence):
                             7,
                         )  # flat
         if self.attention_mask_size:
+            #! Define quantiles under which a class is allowed to be fed to the model
             cats_dist = {
                 "void": [0.0649, 0.109, 0.124, 1],
                 "flat": [0.360, 0.40, 0.433, 1],
@@ -383,16 +388,17 @@ class DataGenerator(tf.keras.utils.Sequence):
                 "human": [0.000455, 0.0035, 0.012, 1],
                 "vehicle": [0.0206, 0.056, 0.113, 1],
             }
+            #! Different quantiles should be considered depending on the epoch
             size_idx = min(3, self.nepoch // 5)
+            #! Initialize a list of indices to remove, so that no empty image is fed to the model
             idx_to_remove = []
             for idx in range(len(batch_y)):
-                #!1.contient human ou object
                 for c in self.cats:
                     freq = np.sum(np.isin(batch_y[idx], self.cats[c])) / (
                         batch_y[idx].shape[0] * batch_y[idx].shape[1]
                     )
                     if freq > cats_dist[c][size_idx]:
-                        #!remplacer tous les px non cat en noir ou en flat sur le mask
+                        #! Replace all the unallowed pixels by black in the image (respectively 'flat' in the mask)
                         batch_x[idx][:, :, 0] = np.where(
                             np.isin(batch_y[idx], self.cats[c]),
                             batch_x[idx][:, :, 0],
@@ -411,11 +417,13 @@ class DataGenerator(tf.keras.utils.Sequence):
                         batch_y[idx] = np.where(
                             np.isin(batch_y[idx], self.cats[c]), batch_y[idx], 7
                         )  # flat
+                # If the image contains only one class, it shouldn't be fed to the model
                 if (
                     np.sum(np.isin(batch_y[idx], self.cats["flat"]))
                     == batch_y[idx].shape[0] * batch_y[idx].shape[1]
                 ):
                     idx_to_remove.append(idx)
+            # Remove black images from the batch input list
             batch_x = [
                 batch_x[idx] for idx in range(len(batch_x)) if idx not in idx_to_remove
             ]
@@ -423,10 +431,9 @@ class DataGenerator(tf.keras.utils.Sequence):
                 batch_y[idx] for idx in range(len(batch_y)) if idx not in idx_to_remove
             ]
         # *################################################
-        #!comparaison aux catégories théo def plus hauts cats
+        #! Simplify the mask: from 32 categories to 8 subcategories
         for idx in range(len(batch_y)):
             mask = np.zeros((batch_y[idx].shape[0], batch_y[idx].shape[1], 8))
-            # ajout 1 si présent
             #!pour les elements de l'image qui m'intresse
             for k in range(-1, 34):
                 if k in self.cats["void"]:

@@ -116,28 +116,10 @@ def makerun(cfg: DictConfig):
     #! custom loss fct
     loss = getattr(sm.losses, cfg.model.loss_function)
 
-    #! model architecture : compile
-    # ?class weight based on imbalance, cf test_init
-    #!Define class weights betwee 0-1
-    # w = [
-    #     1 / 0.106**2,
-    #     1 / 0.389**2,
-    #     1 / 0.218**2,
-    #     1 / 0.018**2,
-    #     1 / 0.145**2,
-    #     1 / 0.036**2,
-    #     1 / 0.012**2,
-    #     1 / 0.075**2,
-    # ]
-
-    #!regularization of all layers
-    # model = set_regularization(model, kernel_regularizer=tf.keras.regularizers.l2(0.01))
-
     #!COMPILE
     model.compile(
-        # loss=focal_tversky_loss,
-        loss=loss(),  # class_weights=[x / np.sum(w) for x in w]),
-        optimizer=cfg.model.optimizer,  # tf.keras.optimizers.Adam(weight_decay=0.004)
+        loss=loss(),
+        optimizer=cfg.model.optimizer,
         metrics=[sm.metrics.IOUScore(), sm.metrics.FScore()],
         run_eagerly=True,
     )
@@ -160,7 +142,7 @@ def makerun(cfg: DictConfig):
             "width": cfg.data.input_width,
         }
 
-        #! suivie params mlflow
+        #! Tracking params mlflow
         mlflow.log_params(params)
         start = time.time()
 
@@ -226,69 +208,6 @@ def makerun(cfg: DictConfig):
             artifact_path=cfg.model.model_type,
         )
         return scores["IOUScore"], scores["FScore"]
-
-
-#!regularisation function of the CNN
-def set_regularization(
-    model, kernel_regularizer=None, bias_regularizer=None, activity_regularizer=None
-):
-    for layer in model.layers:
-        # set kernel_regularizer
-        if kernel_regularizer is not None and hasattr(layer, "kernel_regularizer"):
-            layer.kernel_regularizer = kernel_regularizer
-        # set bias_regularizer
-        if bias_regularizer is not None and hasattr(layer, "bias_regularizer"):
-            layer.bias_regularizer = bias_regularizer
-        # set activity_regularizer
-        if activity_regularizer is not None and hasattr(layer, "activity_regularizer"):
-            layer.activity_regularizer = activity_regularizer
-    out = tf.keras.models.model_from_json(model.to_json())
-    out.set_weights(model.get_weights())
-    return out
-
-
-#! generalized dice loss
-def generalized_dice_loss(y_true, y_pred):
-    # Define epsilon to prevent division by zero
-    epsilon = tf.keras.backend.epsilon()
-
-    # Calculate the sum of y_true and y_pred for each class
-    y_true_sum = tf.reduce_sum(y_true, axis=[0, 1, 2])
-    y_pred_sum = tf.reduce_sum(y_pred, axis=[0, 1, 2])
-
-    # Calculate the intersection and union of y_true and y_pred
-    intersection = tf.reduce_sum(y_true * y_pred, axis=[0, 1, 2])
-    union = y_true_sum + y_pred_sum
-
-    # Calculate the Dice coefficient for each class
-    dice = (2.0 * intersection + epsilon) / (union + epsilon)
-
-    # Calculate the weight for each class
-    weight = 1.0 / ((y_true_sum**2) + epsilon)
-
-    # Calculate the generalized Dice loss
-    generalized_dice = tf.reduce_sum(weight * dice)
-    generalized_dice_loss = 1.0 - (2.0 * generalized_dice)
-
-    return generalized_dice_loss
-
-
-def class_tversky(y_true: tf.Tensor, y_pred: tf.Tensor):
-    smooth = 1
-
-    true_pos = tf.reduce_sum(y_true * y_pred, axis=(0, 1, 2))
-    false_neg = tf.reduce_sum(y_true * (1 - y_pred), axis=(0, 1, 2))
-    false_pos = tf.reduce_sum((1 - y_true) * y_pred, axis=(0, 1, 2))
-    alpha = 0.7
-    return (true_pos + smooth) / (
-        true_pos + alpha * false_neg + (1 - alpha) * false_pos + smooth
-    )
-
-
-def focal_tversky_loss(y_true: tf.Tensor, y_pred: tf.Tensor):
-    pt_1 = class_tversky(y_true, y_pred)
-    gamma = 0.75
-    return tf.reduce_sum((1 - pt_1) ** gamma)
 
 
 # execute fct
