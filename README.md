@@ -1,5 +1,4 @@
 # Urban segmentation app
-
 Ce repository contient le code source permettant d'entraîner et de déployer un modèle de segmentation d'images urbaines.
 Ce modèle est déployé grâce à une API FastAPI (exposée initialement à l'adresse suivante : https://urban-segmentation-api.azurewebsites.net/), et utilisé par une application Flask (initialement exposée à l'adresse suivante : https://urban-segmentation-app.azurewebsites.net/dashboard).
 ## Spécifications techniques
